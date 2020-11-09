@@ -1,0 +1,42 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "amq-broker.fullname" . }}-post
+  labels:
+    {{- include "amq-broker.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    "helm.sh/hook-weight": "0"
+spec:
+  template:
+    metadata:
+      name: "{{ .Release.Name }}"
+      labels:
+        {{- include "amq-broker.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "amq-broker.serviceAccountName" . }}
+      restartPolicy: Never
+      containers:
+      - name: pre-install
+        image: "quay.io/openshift/origin-cli:4.6"
+        command:
+        - /bin/bash
+        - '-c'
+        - |
+            #!/bin/bash
+
+            # Wait the rollout of AMQ Broker Statefulset
+            oc rollout status sts/{{ include "amq-broker.fullname" . }}-ss -w
+            
+            # Scale Down the Operator
+            oc scale --replicas=0 deployments/amq-broker-operator
+
+            # Adopt Statefulset Broker
+            oc annotate sts/{{ include "amq-broker.fullname" . }}-ss meta.helm.sh/release-name={{ .Release.Name }} --overwrite 
+            oc annotate sts/{{ include "amq-broker.fullname" . }}-ss meta.helm.sh/release-namespace={{ .Release.Namespace }} --overwrite 
+            oc label sts/{{ include "amq-broker.fullname" . }}-ss app.kubernetes.io/managed-by=Helm --overwrite
+
+            
+
+

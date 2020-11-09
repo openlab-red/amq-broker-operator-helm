@@ -1,0 +1,9 @@
+# AMQ Broker Operator Helm Enhancement
+
+## Prerequisites
+
+. AMQ Broker Operator must running in your target namespace.
+
+## Install AMQ Broker Helm Charts
+
+`helm upgrade --install mycluster amq-broker/`

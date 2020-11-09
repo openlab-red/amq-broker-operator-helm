@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "amq-broker.fullname" . }}-pre
+  labels:
+    {{- include "amq-broker.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    "helm.sh/hook-weight": "0"
+spec:
+  template:
+    metadata:
+      name: "{{ .Release.Name }}"
+      labels:
+        {{- include "amq-broker.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "amq-broker.serviceAccountName" . }}
+      restartPolicy: Never
+      containers:
+      - name: pre-install
+        image: "quay.io/openshift/origin-cli:4.6"
+        command:
+        - /bin/bash
+        - '-c'
+        - |
+            #!/bin/bash
+            
+            # Scale Up the Operator
+            oc scale --replicas=1 deployments/amq-broker-operator
+
+            oc rollout status deployments/amq-broker-operator -w 
+
+
+
