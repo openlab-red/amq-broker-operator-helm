@@ -1,11 +1,23 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-#  name: {{ include "amq-broker.fullname" . }}
-  name: broker-config
+  name: {{ include "amq-broker.fullname" . }}
   labels:
   {{- include "amq-broker.labels" . | nindent 4 }}
 data:
+  patch.yaml: |
+    spec:
+      template:
+        spec:
+          containers:
+          - name: {{ include "amq-broker.fullname" . }}-container
+            env:
+            - name: BROKER_XML
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "amq-broker.fullname" . }}
+                  key: broker.xml
+
   broker.xml: | 
     <?xml version="1.0" ?>
     <configuration xmlns="urn:activemq" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -117,15 +129,17 @@ data:
                     <auto-create-jms-topics>true</auto-create-jms-topics>
                 </address-setting>
 
-                <address-setting match="#">
-                    <redelivery-delay>1000</redelivery-delay>
-                    <max-size-bytes>52428800</max-size-bytes>
-                    <address-full-policy>PAGE</address-full-policy>
-                    <auto-create-dead-letter-resources>true</auto-create-dead-letter-resources>
-                    <dead-letter-queue-suffix>.eq</dead-letter-queue-suffix>
-                    <auto-create-expiry-resources>true</auto-create-expiry-resources>
-                    <expiry-queue-suffix>.eq</expiry-queue-suffix>
+                {{- range .Values.addressSettings.addressSetting }}
+                <address-setting match="{{ .match }}">
+                    <redelivery-delay>{{ .redeliveryDelay }}</redelivery-delay>
+                    <max-size-bytes>{{ .maxSizeBytes }}</max-size-bytes>
+                    <address-full-policy>{{ .addressFullPolicy }}</address-full-policy>
+                    <auto-create-dead-letter-resources>{{ .autoCreateDeadLetterResources }}</auto-create-dead-letter-resources>
+                    <dead-letter-queue-suffix>{{ .autoCreateDeadLetterResources }}</dead-letter-queue-suffix>
+                    <auto-create-expiry-resources>{{ .autoCreateExpiryResources }}</auto-create-expiry-resources>
+                    <expiry-queue-suffix>{{ .expiryQueueSuffix }}</expiry-queue-suffix>
                 </address-setting>
+                {{- end }}
             </address-settings>
 
 
@@ -140,11 +154,20 @@ data:
                         <queue name="ExpiryQueue" />
                     </anycast>
                 </address>
-                <address name="TestQueue">
+                <address name="TEST">
                     <anycast>
-                        <queue name="TestQueue" />
+                        <queue name="TEST" />
                     </anycast>
                 </address>
+
+                {{- range .Values.addresses }}
+                <address name="{{ .addressName }}">
+                    <{{ .routingType }}>
+                        <queue name="{{ .queueName }}" />
+                    </{{ .routingType }}>
+                </address>
+                {{- end }}
+
             </addresses>
 
         </core>

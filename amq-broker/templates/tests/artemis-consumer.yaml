@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "amq-broker.fullname" . }}-consumer
+  labels:
+    {{- include "amq-broker.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": hook-succeeded
+    "helm.sh/hook-weight": "1"
+spec:
+  containers:
+  - name: artemis-consumer
+    image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+    imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+    env:
+      - name: ARTEMIS_HOST
+        value: {{ include "amq-broker.fullname" . }}-hdls-svc
+      - name: ARTEMIS_PORT
+        value: {{ default "61617" (index .Values.acceptors 0).port | quote }}
+      - name: ARTEMIS_USER
+        value: {{ default "" .Values.adminUser | quote }}
+      - name: ARTEMIS_PASSWORD
+        value: {{ default "" .Values.adminPassword | quote }}
+    command:
+        - /bin/bash
+        - '-c'
+        - '/opt/amq/bin/artemis consumer --user ${ARTEMIS_USER} --password ${ARTEMIS_PASSWORD} --url tcp://${ARTEMIS_HOST}:${ARTEMIS_PORT} --message-count 10'
+  restartPolicy: Never

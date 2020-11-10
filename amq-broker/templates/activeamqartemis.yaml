@@ -6,22 +6,11 @@ metadata:
     {{- include "amq-broker.labels" . | nindent 4 }}
 spec:
   acceptors:
-  - name: all
-    protocols: all
-    port: 61617
-    sslEnabled: false
+    {{- toYaml .Values.acceptors | nindent 4 }}
   addressSettings:
-    addressSetting:
-      - addressFullPolicy: PAGE
-        autoCreateDeadLetterResources: true
-        autoCreateExpiryResources: true
-        deadLetterQueueSuffix: .eq
-        expiryQueueSuffix: .eq
-        maxSizeBytes: '52428800'
-        redeliveryDelay: 1000
-        match: '#'
-  adminPassword: amq
-  adminUser: amq
+    {{- toYaml .Values.addressSettings | nindent 4 }}
+  adminPassword: {{ .Values.adminPassword }}
+  adminUser: {{ .Values.adminUser }}
   console:
     expose: true
     sslEnabled: false
@@ -31,6 +20,6 @@ spec:
     messageMigration: true
     persistenceEnabled: true
     requireLogin: false
-    size: 1
+    size: {{ .Values.replicaCount }}
   upgrades:
     enabled: false

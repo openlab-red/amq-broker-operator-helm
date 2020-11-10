@@ -9,6 +9,8 @@ metadata:
     "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
     "helm.sh/hook-weight": "0"
 spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 100
   template:
     metadata:
       name: "{{ .Release.Name }}"
@@ -18,7 +20,7 @@ spec:
       serviceAccountName: {{ include "amq-broker.serviceAccountName" . }}
       restartPolicy: Never
       containers:
-      - name: pre-install
+      - name: post-install
         image: "quay.io/openshift/origin-cli:4.6"
         command:
         - /bin/bash
@@ -26,16 +28,28 @@ spec:
         - |
             #!/bin/bash
 
+            export AMQ_BROKER={{ include "amq-broker.fullname" . }}-ss
+
             # Wait the rollout of AMQ Broker Statefulset
-            oc rollout status sts/{{ include "amq-broker.fullname" . }}-ss -w
+            oc rollout status sts/$AMQ_BROKER -w
             
             # Scale Down the Operator
             oc scale --replicas=0 deployments/amq-broker-operator
 
             # Adopt Statefulset Broker
-            oc annotate sts/{{ include "amq-broker.fullname" . }}-ss meta.helm.sh/release-name={{ .Release.Name }} --overwrite 
-            oc annotate sts/{{ include "amq-broker.fullname" . }}-ss meta.helm.sh/release-namespace={{ .Release.Namespace }} --overwrite 
-            oc label sts/{{ include "amq-broker.fullname" . }}-ss app.kubernetes.io/managed-by=Helm --overwrite
+            oc annotate sts/$AMQ_BROKER meta.helm.sh/release-name={{ .Release.Name }} --overwrite 
+            oc annotate sts/$AMQ_BROKER meta.helm.sh/release-namespace={{ .Release.Namespace }} --overwrite 
+            oc label sts/$AMQ_BROKER app.kubernetes.io/managed-by=Helm --overwrite
+
+            # Patch
+            oc patch sts $AMQ_BROKER -p "$(</opt/config/patch.yaml)"
+        volumeMounts:
+        - name: kustomize
+          mountPath: /opt/config
+      volumes:
+      - name: kustomize
+        configMap:
+          name: {{ include "amq-broker.fullname" . }}
 
             
 
