@@ -100,7 +100,7 @@ The following table shows some further examples of this naming difference.
 | Test Internal Connection Implementation
 | DONE
 
-| SSL Implementation
+| SSL Selfsigned Implementation
 | TODO
 
 | Make sure that the operator creates the Addresses and probably we are able to reuse it. `<address-setting match="None">`
@@ -113,6 +113,9 @@ The following table shows some further examples of this naming difference.
 | TODO
 
 | Test with External Client Implementation
+| TODO
+
+| SSL Custom CA Implementation
 | TODO
 
 | High Availability and How scale down controller actives without the operator.
