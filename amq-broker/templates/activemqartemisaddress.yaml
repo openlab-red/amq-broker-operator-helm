@@ -11,6 +11,6 @@ spec:
   addressName: {{ $address.addressName }}
   queueName: {{ $address.queueName }}
   routingType: {{ $address.routingType }}
-{{- end }}
+{{ end }}
 {{- end }}
 
