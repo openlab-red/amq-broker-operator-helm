@@ -19,9 +19,45 @@ spec:
     spec:
       serviceAccountName: {{ include "amq-broker.serviceAccountName" . }}
       restartPolicy: Never
+      initContainers:
+      - name: keytool
+        image: "{{ .Values.keytool.image.repository }}:{{ .Values.keytool.image.tag }}"
+        imagePullPolicy: "{{ .Values.keytool.image.pullPolicy }}"
+        command:
+        - /bin/bash
+        - '-c'
+        - |
+            #!/bin/bash
+
+            {{ range .Values.acceptors }}
+            {{- $acceptor := . -}}
+            {{- with $ }}
+            {{- if $acceptor.sslEnabled -}}
+
+            cd /opt/pki/{{ $acceptor.name }}
+            mkdir -p ../java/{{ $acceptor.name }}
+
+            RANDFILE=/tmp/.rnd openssl pkcs12 -export -in tls.crt -inkey tls.key -chain -CAfile ca.crt -name broker -password pass:{{ .Values.keyStorePassword | quote }} -out ../java/{{ $acceptor.name }}/broker.ks
+
+            keytool -keystore ../java/{{ $acceptor.name }}/client.ts -storepass {{ .Values.trustStorePassword  | quote }} -noprompt -alias broker -import -file tls.crt
+
+            {{- end }}
+            {{- end }}
+            {{- end }}
+            exit 0
+        volumeMounts:
+        {{ range .Values.acceptors }}
+        {{- if .sslEnabled -}}
+        - name: {{ .name }}
+          mountPath: /opt/pki/{{ .name }}
+        {{- end }}
+        {{- end }}
+        - name: pki
+          mountPath: /opt/pki
       containers:
       - name: post-install
-        image: "quay.io/openshift/origin-cli:4.6"
+        image: "{{ .Values.oc.image.repository }}:{{ .Values.oc.image.tag }}"
+        imagePullPolicy: "{{ .Values.oc.image.pullPolicy }}"
         command:
         - /bin/bash
         - '-c'
@@ -29,6 +65,34 @@ spec:
             #!/bin/bash
 
             export AMQ_BROKER={{ include "amq-broker.fullname" . }}-ss
+
+            {{ range .Values.acceptors }}
+            {{- $acceptor := . -}}
+            {{- with $ }}
+            {{- if $acceptor.sslEnabled -}}
+
+            cd /opt/pki/java/{{ $acceptor.name }}
+            
+            export BROKER_KS=$(base64 broker.ks -w0)
+            export CLIENT_TS=$(base64 client.ts -w0)
+            
+            oc patch secret {{ include "amq-broker.fullname" . }}-{{ $acceptor.name }}-secret -p "
+            data:
+              broker.ks: |
+                ${BROKER_KS}
+              client.ts: |
+                ${CLIENT_TS}
+            "
+
+            oc secrets link sa/amq-broker-operator {{ include "amq-broker.fullname" . }}-{{ $acceptor.name }}-secret
+
+            {{- end }}
+            {{- end }}
+            {{- end }}
+            
+            # TODO: Wait until the operator finish to apply all the changes (broker and addresses)
+            # Reconcile
+            sleep 1m
 
             # Wait the rollout of AMQ Broker Statefulset
             oc rollout status sts/$AMQ_BROKER -w
@@ -46,11 +110,21 @@ spec:
         volumeMounts:
         - name: kustomize
           mountPath: /opt/config
+        - name: pki
+          mountPath: /opt/pki
       volumes:
+      - name: pki
+        emptyDir: {}
       - name: kustomize
         configMap:
           name: {{ include "amq-broker.fullname" . }}
-
-            
-
-
+      {{ range .Values.acceptors }}
+      {{- $acceptor := . -}}
+      {{- with $ }}
+      {{- if $acceptor.sslEnabled -}}
+      - name: {{ $acceptor.name }}
+        secret:
+          secretName: {{ include "amq-broker.fullname" . }}-{{ $acceptor.name }}-secret
+      {{- end }}
+      {{- end }}
+      {{- end }}

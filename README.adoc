@@ -1,71 +1,7 @@
 # AMQ Broker Operator Helm Enhancement
 
 The aim is to automate the creation of the AMQ Broker Custom Resources and at the same time enhance the broker.xml with a configuration that is not yet available in the operator.
-The helm chart keeps in sync the custom resources and the broker.xml.
-
-. Install Operator to specific namespace on the cluster
-.. This can be provided by the cluster-admin as namespaced installation and should give the right role to manage the AMQ Broker CRD.
-+
-NOTE: You cannot create more than one broker deployment in a given OpenShift project by deploying multiple broker Custom Resource (CR) instances. However, when you have created a broker deployment in a project, you can deploy multiple CR instances for addresses. https://access.redhat.com/documentation/en-us/red_hat_amq/7.7/html-single/deploying_amq_broker_on_openshift/index#con-br-operator-deployment-notes_broker-ocp[Reference].
-. [pre-install hook] Restore AMQ Broker Operator
-. [install/upgrade] Create kind: ActiveMQArtemis
-. [install/upgrade] Deploy custom broker xml.
-. [post-install hook] Shutdown the AMQ Broker Operator
-. [post-install hook] Adopt the AMQ Broker resource to Helm:
-+
-[source,yaml]
-------
-annotations:
-  meta.helm.sh/release-name: release-name
-  meta.helm.sh/release-namespace: namespace-name
-labels:
-  app.kubernetes.io/managed-by: Helm
-------
-. [post install] Adjust AMQ Broker Stateful set to use the custom broker xml. Possible 3 ways:
-.. Set BROKER_XML environment variable with your custom broker.xml.
-.. Mount ConfigMap resources hosting any custom configuration file.
-.. Use S2I procedure with more customization requirements. footnote:[ActiveMQArtemis allows you to override the amq broker images]
-. [test] Verify the installation is correct.
-
-NOTE: A pre-hook install image requires oc client `quay.io/openshift/origin-cli:4.6` and running with edit role on the specific namespace.
-
-## Important
-
-* In AMQ Broker 7.7, if you want to configure any of the following items, you must add the appropriate configuration to the main CR instance before deploying the CR for the first time.
-** Address settings
-** The size of the Persistent Volume Claim (PVC) required by each broker in a deployment for persistent storage
-** Limits and requests for memory and CPU for each broker in a deployment
-* During an active scaling event, any further changes that you apply are queued by the Operator and executed only when scaling is complete. For example, suppose that you scale the size of your deployment down from four brokers to one. Then, while scaledown is taking place, you also change the values of the broker administrator user name and password. In this case, the Operator queues the user name and password changes until the deployment is running with one active broker.
-* All CR changes – apart from changing the size of your deployment, or changing the value of the expose attribute for acceptors, connectors, or the console – cause existing brokers to be restarted. If you have multiple brokers in your deployment, only one broker restarts at a time.
-
-* To configure address and queue settings for broker deployments on OpenShift Container Platform, you add configuration to an addressSettings section of the main Custom Resource (CR) instance for the broker deployment. This contrasts with standalone deployments on Linux or Windows, for which you add configuration to an address-settings element in the broker.xml configuration file.
-* The format used for the names of configuration items differs between OpenShift Container Platform and standalone broker deployments. For OpenShift Container Platform deployments, configuration item names are in camel case, for example, defaultQueueRoutingType. By contrast, configuration item names for standalone deployments are in lower case and use a dash (-) separator, for example, default-queue-routing-type.
-
-The following table shows some further examples of this naming difference.
-
-.Naming difference
-[cols="5,5",options=header]
-|===
-
-| Configuration item for standalone broker deployment	
-| Configuration item for OpenShift broker deployment
-
-| address-full-policy
-| addressFullPolicy
-
-| auto-create-queues
-| autoCreateQueues
-
-| default-queue-routing-type
-| defaultQueueRoutingType
-
-| last-value-queue
-| lastValueQueue
-
-|===
-
-* Addresses are created by the AMQ Broker Operator using Artemis Jolokia and MBean.
-
+The helm chart keeps in sync the custom resources and the custom broker.xml.
 
 ## Prerequisites
 
@@ -101,21 +37,27 @@ The following table shows some further examples of this naming difference.
 | DONE
 
 | SSL Selfsigned Implementation
-| TODO
-
-| Make sure that the operator creates the Addresses and probably we are able to reuse it. `<address-setting match="None">`
-| TODO
-
-| Bridge and Diverts Implementation
-| TODO
-
-| Network Policy
-| TODO
+| DONE
 
 | Test with External Client Implementation
-| TODO
+| DONE
 
-| SSL Custom CA Implementation
+| Keystore and Truststore Password
+| DONE
+
+| SSL Custom CA Implementation, NOTE: if you create the certificate early it should work
+| https://github.com/openlab-red/amq-broker-operator-helm/issues/2[#2]
+
+| User Management
+| https://github.com/openlab-red/amq-broker-operator-helm/issues/3[#3]
+
+| Bridge and Diverts Implementation
+| https://github.com/openlab-red/amq-broker-operator-helm/issues/1[#1]
+
+| Network Policy
+| https://github.com/openlab-red/amq-broker-operator-helm/issues/4[#4]
+
+| Make sure that the operator creates all the Addresses
 | TODO
 
 | High Availability and How scale down controller actives without the operator.
@@ -124,3 +66,46 @@ The following table shows some further examples of this naming difference.
 | Migrate one standalone broker
 | TODO
 |===
+
+## Pseudo Code
+
+. Install Operator to specific namespace on the cluster
+.. This can be provided by the cluster-admin as namespaced installation and should give the right role to manage the AMQ Broker CRD.
++
+NOTE: You cannot create more than one broker deployment in a given OpenShift project by deploying multiple broker Custom Resource (CR) instances. However, when you have created a broker deployment in a project, you can deploy multiple CR instances for addresses. https://access.redhat.com/documentation/en-us/red_hat_amq/7.7/html-single/deploying_amq_broker_on_openshift/index#con-br-operator-deployment-notes_broker-ocp[Reference].
+. [pre-install hook] Restore AMQ Broker Operator
+. [install/upgrade] Create kind: ActiveMQArtemis and ActiveMQArtemisAddress
+. [install/upgrade] Create Config Map with custom broker xml.
+. [post-install hook] Shutdown the AMQ Broker Operator
+. [post-install hook] Adoptthe AMQ Broker resource to Helm:
++
+[source,yaml]
+------
+annotations:
+  meta.helm.sh/release-name: release-name
+  meta.helm.sh/release-namespace: namespace-name
+labels:
+  app.kubernetes.io/managed-by: Helm
+------
+. [post install] Adjust AMQ Broker Stateful set to use the custom broker xml.
+.. Set BROKER_XML environment variable with your custom broker.xml.
+. [test] Verify the installation is correct.
+
+NOTE: A *-hook install image requires oc client `quay.io/openshift/origin-cli:4.6` and running with edit role on the specific namespace.
+
+## Important
+
+* In AMQ Broker 7.7, if you want to configure any of the following items, you must add the appropriate configuration to the main CR instance before deploying the CR for the first time.
+** Address settings
+** The size of the Persistent Volume Claim (PVC) required by each broker in a deployment for persistent storage
+** Limits and requests for memory and CPU for each broker in a deployment
+* During an active scaling event, any further changes that you apply are queued by the Operator and executed only when scaling is complete. For example, suppose that you scale the size of your deployment down from four brokers to one. Then, while scaledown is taking place, you also change the values of the broker administrator user name and password. In this case, the Operator queues the user name and password changes until the deployment is running with one active broker.
+* All CR changes – apart from changing the size of your deployment, or changing the value of the expose attribute for acceptors, connectors, or the console – cause existing brokers to be restarted. If you have multiple brokers in your deployment, only one broker restarts at a time.
+* To configure address and queue settings for broker deployments on OpenShift Container Platform, you add configuration to an addressSettings section of the main Custom Resource (CR) instance for the broker deployment. This contrasts with standalone deployments on Linux or Windows, for which you add configuration to an address-settings element in the broker.xml configuration file.
+* The format used for the names of configuration items differs between OpenShift Container Platform and standalone broker deployments. For OpenShift Container Platform deployments, configuration item names are in camel case, for example, defaultQueueRoutingType. By contrast, configuration item names for standalone deployments are in lower case and use a dash (-) separator, for example, default-queue-routing-type.
+* Addresses are created by the AMQ Broker Operator using Artemis Jolokia and MBean.
+
+## Reference
+
+* https://access.redhat.com/documentation/en-us/red_hat_amq/7.7/html-single/deploying_amq_broker_on_openshift/index#con-br-configuring-broker-certificate-for-hostname-verification_broker-ocp
+

@@ -44,18 +44,12 @@ data:
             <critical-analyzer-policy>HALT</critical-analyzer-policy>
 
             <connectors>
+                <!-- Connector used to be announced through cluster connections and notifications -->
                 <connector name="artemis">tcp://${BROKER_IP}:61616</connector>
             </connectors>
 
             <acceptors>
-            {{- range .Values.acceptors }}
-                {{ if eq .protocols "all" }}
-                <acceptor name="{{ .name }}">tcp://${BROKER_IP}:{{ .port }}?protocols=AMQP,CORE,HORNETQ,MQTT,OPENWIRE,STOMP;tcpSendBufferSize=1048576;tcpReceiveBufferSize=1048576;useEpoll=true;amqpCredits=1000;amqpMinCredits=300</acceptor>
-                {{ else }}
-                <acceptor name="{{ .name }}">tcp://${BROKER_IP}:{{ .port }}?protocols={{ upper .protocols }};tcpSendBufferSize=1048576;tcpReceiveBufferSize=1048576;useEpoll=true;amqpCredits=1000;amqpMinCredits=300</acceptor>
-                {{ end }}
-            {{- end }}
-                <!-- acceptor name="all">tcp://${BROKER_IP}:61617?protocols=AMQP,CORE,HORNETQ,MQTT,OPENWIRE,STOMP;sslEnabled=true;keyStorePath=/etc/tls-secret-volume/broker.ks;keyStorePassword=changeit;trustStorePath=/etc/tls-secret-volume/client.ts;trustStorePassword=changeit;sslProvider=JDK;tcpSendBufferSize=1048576;tcpReceiveBufferSize=1048576;useEpoll=true;amqpCredits=1000;amqpMinCredits=300</acceptor -->
+                {{- include "amq-broker.acceptors" . | nindent 16 }}
                 <acceptor name="scaleDown">tcp://${BROKER_IP}:61616?protocols=CORE;tcpSendBufferSize=1048576;tcpReceiveBufferSize=1048576;useEpoll=true;amqpCredits=1000;amqpMinCredits=300</acceptor>
             </acceptors>
 

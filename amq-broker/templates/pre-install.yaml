@@ -21,17 +21,20 @@ spec:
       restartPolicy: Never
       containers:
       - name: pre-install
-        image: "quay.io/openshift/origin-cli:4.6"
+        image: "{{ .Values.oc.image.repository }}:{{ .Values.oc.image.tag }}"
         command:
         - /bin/bash
         - '-c'
         - |
             #!/bin/bash
             
+            export AMQ_BROKER={{ include "amq-broker.fullname" . }}-ss
+
             # Scale Up the Operator
             oc scale --replicas=1 deployments/amq-broker-operator
 
-            oc rollout status deployments/amq-broker-operator -w 
+            oc rollout status deployments/amq-broker-operator -w --timeout=1m
+
 
 
 

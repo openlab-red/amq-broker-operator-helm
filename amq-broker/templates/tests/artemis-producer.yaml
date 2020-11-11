@@ -1,29 +1,60 @@
+{{- range $index, $acceptor := .Values.acceptors }}
+{{- with $ }}
 apiVersion: v1
 kind: Pod
 metadata:
-  name: {{ include "amq-broker.fullname" . }}-producer
+  name: {{ include "amq-broker.fullname" . }}-{{ $acceptor.name }}-producer
   labels:
     {{- include "amq-broker.labels" . | nindent 4 }}
   annotations:
     "helm.sh/hook": test
     "helm.sh/hook-delete-policy": hook-succeeded
-    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-weight": "{{ $index }}"
 spec:
   containers:
   - name: artemis-producer
     image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
     imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
     env:
-      - name: ARTEMIS_HOST
-        value: {{ include "amq-broker.fullname" . }}-hdls-svc
-      - name: ARTEMIS_PORT
-        value: {{ default "61617" (index .Values.acceptors 0).port | quote }}
       - name: ARTEMIS_USER
         value: {{ default "" .Values.adminUser | quote }}
       - name: ARTEMIS_PASSWORD
         value: {{ default "" .Values.adminPassword | quote }}
+      {{- if $acceptor.expose }}
+      - name: ARTEMIS_HOST
+        value: {{ include "amq-broker.fullname" . }}-{{ $acceptor.name }}-0-svc
+      {{ else }}
+      - name: ARTEMIS_HOST
+        value: {{ include "amq-broker.fullname" . }}-hdls-svc  
+      {{- end }}
+      {{- if eq $acceptor.protocols "all" }}
+      - name: ARTEMIS_PROTOCOL
+        value: "core"
+      {{ else }}
+      - name: ARTEMIS_PROTOCOL
+        value: {{ $acceptor.protocols }}   
+      {{- end }}     
     command:
         - /bin/bash
         - '-c'
-        - '/opt/amq/bin/artemis producer --user ${ARTEMIS_USER} --password ${ARTEMIS_PASSWORD} --url tcp://${ARTEMIS_HOST}:${ARTEMIS_PORT} --message-count 10'
+        - |
+          #!/bin/bash
+          
+          /opt/amq/bin/artemis producer --user ${ARTEMIS_USER} --password ${ARTEMIS_PASSWORD} --message-count 10 --protocol=${ARTEMIS_PROTOCOL} --url="tcp://${ARTEMIS_HOST}:{{ $acceptor.port }}
+          {{- if $acceptor.sslEnabled -}}
+          ?sslEnabled=true;trustStorePath=/opt/pki/{{ .name }}/client.ts;trustStorePassword={{ .Values.trustStorePassword }}"
+          {{- else -}}
+          "
+          {{ end }}
+  {{- if $acceptor.sslEnabled }}
+    volumeMounts:
+    - name: {{ .name }}
+      mountPath: /opt/pki/{{ .name }} 
+  volumes:
+  - name: {{ $acceptor.name }}
+    secret:
+      secretName: {{ include "amq-broker.fullname" . }}-{{ $acceptor.name }}-secret
+  {{- end }}
   restartPolicy: Never
+{{- end }}
+{{- end }}

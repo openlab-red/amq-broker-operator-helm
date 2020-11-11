@@ -12,8 +12,7 @@ spec:
   adminPassword: {{ .Values.adminPassword }}
   adminUser: {{ .Values.adminUser }}
   console:
-    expose: true
-    sslEnabled: false
+    {{- toYaml .Values.console | nindent 4 }}
   deploymentPlan:
     image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
     journalType: nio

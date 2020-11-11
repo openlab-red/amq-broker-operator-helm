@@ -16,8 +16,6 @@ fullnameOverride: ""
 serviceAccount:
   # Specifies whether a service account should be created
   create: true
-  # Annotations to add to the service account
-  annotations: {}
   # The name of the service account to use.
   # If not set and create is true, a name is generated using the fullname template
   name: ""
@@ -30,17 +28,37 @@ tolerations: []
 
 affinity: {}
 
+# OpenSSL and Keytool
+keytool:
+  image:
+    repository: docker.io/adoptopenjdk
+    pullPolicy: IfNotPresent
+    tag: 11
+
+# OpenShift Client
+oc:
+  image:
+    repository: quay.io/openshift/origin-cli
+    pullPolicy: IfNotPresent
+    tag: 4.6
+
 # AMQ Broker Specific
 
 adminPassword: amq
 adminUser: amq
+trustStorePassword: password
+keyStorePassword: password
+
+console:
+  expose: true
+  sslEnabled: false
 
 acceptors:
 - name: all
   protocols: all
   port: 61617
-  expose: false
-  sslEnabled: false
+  expose: true
+  sslEnabled: true
 - name: amqp
   protocols: amqp
   port: 5672

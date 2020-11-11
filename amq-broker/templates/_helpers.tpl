@@ -71,10 +71,38 @@ Route  <broker-name>-<acceptor-name>-<replica>-svc-rte
 svc.cluster.local
 */}}
 {{- define "amq-broker.gen-certs" -}}
-{{- $altNames := list ( printf "%s-*-svc-rte-%s.%s" (include "amq-broker.fullname" .) .Release.Namespace .Values.clusterDomain ) ( printf "%s-*-svc.%s.svc" (include "amq-broker.fullname" .) .Release.Namespace ) -}}
+{{- $cn:= printf "%s-*-svc-rte-%s.%s" (include "amq-broker.fullname" .) .Release.Namespace .Values.clusterDomain -}}
+{{- $altNames := list $cn ( printf "%s-*-svc.%s.svc" (include "amq-broker.fullname" .) .Release.Namespace ) -}}
 {{- $ca := genCA "amq-broker-ca" 365 -}}
-{{- $cert := genSignedCert ( include "amq-broker.fullname" . ) nil $altNames 365 $ca -}}
+{{- $cert := genSignedCert $cn  nil $altNames 365 $ca -}}
 tls.crt: {{ $cert.Cert | b64enc }}
 tls.key: {{ $cert.Key | b64enc }}
 ca.crt: {{ $ca.Cert | b64enc }}
 {{- end -}}
+
+
+{{/*
+Generate acceptors broker.xml
+*/}}
+{{- define "amq-broker.acceptors" -}}
+{{- $fullName := ( include "amq-broker.fullname" . ) -}}
+{{ range .Values.acceptors }}
+{{- $acceptor := . -}}
+{{- with $ }}
+<acceptor name="{{ $acceptor.name }}">tcp://${BROKER_IP}:{{ $acceptor.port }}?protocols=
+{{- if eq $acceptor.protocols "all" -}}
+AMQP,CORE,HORNETQ,MQTT,OPENWIRE,STOMP
+{{- else -}}
+{{- upper $acceptor.protocols -}}
+{{- end -}}
+{{- if $acceptor.sslEnabled -}}
+;sslEnabled=true;keyStorePath=/etc/{{ $fullName }}-all-secret-volume/broker.ks;keyStorePassword={{ .Values.keyStorePassword }};trustStorePath=/etc/{{ $fullName }}-all-secret-volume/client.ts;trustStorePassword={{ .Values.trustStorePassword }};
+{{- else -}}
+;
+{{- end -}}
+tcpSendBufferSize=1048576;tcpReceiveBufferSize=1048576;useEpoll=true;amqpCredits=1000;amqpMinCredits=300</acceptor>
+{{- end -}}
+{{- end }}
+{{- end }}
+
+
