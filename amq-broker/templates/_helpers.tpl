@@ -60,3 +60,21 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+
+{{/*
+Generate certificates for amq broker
+Dns pod <broker-name>-ss-<replica>
+Service Headless <broker-name>-hdls-svc
+Service <broker-name>-<acceptor-name>-<replica>-svc
+Route  <broker-name>-<acceptor-name>-<replica>-svc-rte
+svc.cluster.local
+*/}}
+{{- define "amq-broker.gen-certs" -}}
+{{- $altNames := list ( printf "%s-*-svc-rte-%s.%s" (include "amq-broker.fullname" .) .Release.Namespace .Values.clusterDomain ) ( printf "%s-*-svc.%s.svc" (include "amq-broker.fullname" .) .Release.Namespace ) -}}
+{{- $ca := genCA "amq-broker-ca" 365 -}}
+{{- $cert := genSignedCert ( include "amq-broker.fullname" . ) nil $altNames 365 $ca -}}
+tls.crt: {{ $cert.Cert | b64enc }}
+tls.key: {{ $cert.Key | b64enc }}
+ca.crt: {{ $ca.Cert | b64enc }}
+{{- end -}}

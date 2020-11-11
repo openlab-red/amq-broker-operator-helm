@@ -41,6 +41,9 @@ acceptors:
   port: 61617
   expose: false
   sslEnabled: false
+- name: amqp
+  protocols: amqp
+  port: 5672
 
 addressSettings:
   addressSetting:
@@ -61,4 +64,6 @@ addresses:
 bridges: []
 
 diverts: []
+
+clusterDomain: apps-crc.testing
 
