@@ -15,6 +15,134 @@ The helm chart keeps in sync the custom resources and the custom broker.xml.
 
 `helm test mycluster`
 
+## Custom Certificate Authority
+
+`mkdir -p tls/{ca,broker}`
+
+### Certificate Autority
+
+This section is to simulate a private certificate authority.
+
+. Certificate Authority (CA)
++
+[source,bash]
+-------
+openssl req -new -newkey rsa:2048 -x509 -keyout tls/ca/ca.key -out tls/ca/ca.crt -days 365 -subj "/CN=mycompany.com"
+-------
+
+. Create a Truststore
++
+[source,bash]
+-------
+    keytool -import -storepass password -file tls/ca/ca.crt -alias mycompany.com -keystore tls/ca/client.ts
+-------
+
+### Broker Certificate
+
+. Broker Key
++
+[source,bash]
+-------
+keytool -genkeypair -storepass password -keyalg RSA -keysize 2048 -dname "CN=mycluster-amq-broker-*-svc-rte-dxc.apps-crc.testing" -ext san="dns:mycluster-amq-broker-all-0-svc-rte-dxc.apps-crc.testing,dns:mycluster-amq-broker-all-0-svc.dxc.svc" -alias broker -keystore tls/broker/broker.ks
+-------
+
+. Certificate Signing Request (CSR)
++
+[source,bash]
+-------
+keytool -certreq -storepass password -keyalg rsa -alias broker -keystore tls/broker/broker.ks -file tls/broker/tls.csr
+-------
+
+. Certificate Authority Sign
++
+[source,bash]
+-------
+openssl x509 -req -CA tls/ca/ca.crt -CAkey tls/ca/ca.key -in tls/broker/tls.csr -out tls/broker/tls.crt -days 365 -CAcreateserial
+    
+keytool -import -v -trustcacerts -alias root -file tls/ca/ca.crt -keystore tls/broker/broker.ks
+keytool -import -v -trustcacerts -alias broker -file tls/broker/tls.crt -keystore tls/broker/broker.ks
+-------
+
+.. Verify the chain
++
+[source,bash]
+-------
+keytool -list -v -keystore tls/broker/broker.ks
+-------
+
+. Import to truststore
++
+[source,bash]
+-------
+keytool -import -storepass password -file tls/broker/tls.crt -alias server -keystore tls/ca/client.ts
+-------
+
+### Create Secret
+
+NOTE: Naming convention: `<CustomResourceName>-<AcceptorName>-secret`
+
+[source,bash]
+-------
+oc create secret generic mycluster-amq-broker-all-secret \
+  --from-file=tls/broker \
+  --from-file=tls/ca/client.ts \
+  --from-file=tls/ca/ca.crt \
+  --from-literal=keyStorePassword=password \
+  --from-literal=trustStorePassword=password
+-------
+
+IMPORTANT: Adopt with Helm
+
+[source,bash]
+-------
+oc annotate secret/mycluster-amq-broker-all-secret meta.helm.sh/release-name=mycluster --overwrite 
+oc annotate secret/mycluster-amq-broker-all-secret meta.helm.sh/release-namespace=dxc --overwrite 
+oc label secret/mycluster-amq-broker-all-secret app.kubernetes.io/managed-by=Helm --overwrite
+-------
+
+### Install with Custom Certificate
+
+`helm upgrade --install mycluster --set pki.self=false`
+
+
+## Test External Client
+
+. Extract Client TrustStore
++
+`oc extract secret/mycluster-amq-broker-all-secret --keys=client.ts`
+
+. Extract AMQ Endpoint
+
+`export AMQ_ENDPOINT=$(oc get route mycluster-amq-broker-all-0-svc-rte --no-headers -o custom-columns=:.spec.host)`
+
+. Launch Artemis Producer Command
++
+[source,bash]
+-------
+./artemis producer --user amq --password amq --message-count 10 --url="tcp://${AMQ_ENDPOINT}:443?sslEnabled=true;trustStorePath=./client.ts;trustStorePassword=password"
+Connection brokerURL = tcp://mycluster-amq-broker-all-0-svc-rte-dxc.apps-crc.testing:443?sslEnabled=true;trustStorePath=./client.ts;trustStorePassword=password
+Producer ActiveMQQueue[TEST], thread=0 Started to calculate elapsed time ...
+
+Producer ActiveMQQueue[TEST], thread=0 Produced: 10 messages
+Producer ActiveMQQueue[TEST], thread=0 Elapsed time in second : 0 s
+Producer ActiveMQQueue[TEST], thread=0 Elapsed time in milli second : 79 milli seconds
+-------
+
+. Launch Artemis Consumer Command
++
+[source,bash]
+-------
+./artemis consumer --user amq --password amq --message-count 10 --url="tcp://${AMQ_ENDPOINT}:443?sslEnabled=true;trustStorePath=./client.ts;trustStorePassword=password"
+Connection brokerURL = tcp://mycluster-amq-broker-all-0-svc-rte-dxc.apps-crc.testing:443?sslEnabled=true;trustStorePath=./client.ts;trustStorePassword=password
+Consumer:: filter = null
+Consumer ActiveMQQueue[TEST], thread=0 wait until 10 messages are consumed
+Consumer ActiveMQQueue[TEST], thread=0 Consumed: 10 messages
+Consumer ActiveMQQueue[TEST], thread=0 Elapsed time in second : 0 s
+Consumer ActiveMQQueue[TEST], thread=0 Elapsed time in milli second : 17 milli seconds
+Consumer ActiveMQQueue[TEST], thread=0 Consumed: 10 messages
+Consumer ActiveMQQueue[TEST], thread=0 Consumer thread finished
+-------
+
 ## Uninstall it
 
 `helm uninstall mycluster --no-hooks`

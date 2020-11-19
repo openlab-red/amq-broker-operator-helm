@@ -19,6 +19,7 @@ spec:
     spec:
       serviceAccountName: {{ include "amq-broker.serviceAccountName" . }}
       restartPolicy: Never
+      {{- if .Values.pki.self -}}
       initContainers:
       - name: keytool
         image: "{{ .Values.keytool.image.repository }}:{{ .Values.keytool.image.tag }}"
@@ -37,9 +38,9 @@ spec:
             cd /opt/pki/{{ $acceptor.name }}
             mkdir -p ../java/{{ $acceptor.name }}
 
-            RANDFILE=/tmp/.rnd openssl pkcs12 -export -in tls.crt -inkey tls.key -chain -CAfile ca.crt -name broker -password pass:{{ .Values.keyStorePassword | quote }} -out ../java/{{ $acceptor.name }}/broker.ks
+            RANDFILE=/tmp/.rnd openssl pkcs12 -export -in tls.crt -inkey tls.key -chain -CAfile ca.crt -name broker -password pass:{{ .Values.pki.keyStorePassword | quote }} -out ../java/{{ $acceptor.name }}/broker.ks
 
-            keytool -keystore ../java/{{ $acceptor.name }}/client.ts -storepass {{ .Values.trustStorePassword  | quote }} -noprompt -alias broker -import -file tls.crt
+            keytool -keystore ../java/{{ $acceptor.name }}/client.ts -storepass {{ .Values.pki.trustStorePassword  | quote }} -noprompt -alias broker -import -file tls.crt
 
             {{- end }}
             {{- end }}
@@ -54,6 +55,7 @@ spec:
         {{- end }}
         - name: pki
           mountPath: /opt/pki
+      {{- end }}
       containers:
       - name: post-install
         image: "{{ .Values.oc.image.repository }}:{{ .Values.oc.image.tag }}"
@@ -71,6 +73,8 @@ spec:
             {{- with $ }}
             {{- if $acceptor.sslEnabled -}}
 
+            {{- if .Values.pki.self -}}
+
             cd /opt/pki/java/{{ $acceptor.name }}
             
             export BROKER_KS=$(base64 broker.ks -w0)
@@ -83,9 +87,11 @@ spec:
               client.ts: |
                 ${CLIENT_TS}
             "
+            {{ else }}
 
             oc secrets link sa/amq-broker-operator {{ include "amq-broker.fullname" . }}-{{ $acceptor.name }}-secret
 
+            {{- end }}
             {{- end }}
             {{- end }}
             {{- end }}

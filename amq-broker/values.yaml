@@ -46,8 +46,11 @@ oc:
 
 adminPassword: amq
 adminUser: amq
-trustStorePassword: password
-keyStorePassword: password
+
+pki:
+  self: true
+  trustStorePassword: password
+  keyStorePassword: password
 
 console:
   expose: true

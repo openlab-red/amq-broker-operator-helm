@@ -96,7 +96,7 @@ AMQP,CORE,HORNETQ,MQTT,OPENWIRE,STOMP
 {{- upper $acceptor.protocols -}}
 {{- end -}}
 {{- if $acceptor.sslEnabled -}}
-;sslEnabled=true;keyStorePath=/etc/{{ $fullName }}-all-secret-volume/broker.ks;keyStorePassword={{ .Values.keyStorePassword }};trustStorePath=/etc/{{ $fullName }}-all-secret-volume/client.ts;trustStorePassword={{ .Values.trustStorePassword }};
+;sslEnabled=true;keyStorePath=/etc/{{ $fullName }}-all-secret-volume/broker.ks;keyStorePassword={{ .Values.pki.keyStorePassword }};trustStorePath=/etc/{{ $fullName }}-all-secret-volume/client.ts;trustStorePassword={{ .Values.pki.trustStorePassword }};
 {{- else -}}
 ;
 {{- end -}}

@@ -42,7 +42,7 @@ spec:
           
           /opt/amq/bin/artemis producer --user ${ARTEMIS_USER} --password ${ARTEMIS_PASSWORD} --message-count 10 --protocol=${ARTEMIS_PROTOCOL} --url="tcp://${ARTEMIS_HOST}:{{ $acceptor.port }}
           {{- if $acceptor.sslEnabled -}}
-          ?sslEnabled=true;trustStorePath=/opt/pki/{{ .name }}/client.ts;trustStorePassword={{ .Values.trustStorePassword }}"
+          ?sslEnabled=true;trustStorePath=/opt/pki/{{ .name }}/client.ts;trustStorePassword={{ .Values.pki.trustStorePassword }}"
           {{- else -}}
           "
           {{ end }}
