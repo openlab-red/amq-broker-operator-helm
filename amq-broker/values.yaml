@@ -86,5 +86,5 @@ bridges: []
 
 diverts: []
 
-clusterDomain: apps-crc.testing
+clusterDomain: apps.dev.openlab.red
 

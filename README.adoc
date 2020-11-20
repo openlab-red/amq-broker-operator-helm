@@ -109,7 +109,7 @@ oc label secret/mycluster-amq-broker-all-secret app.kubernetes.io/managed-by=Hel
 
 . Extract Client TrustStore
 +
-`oc extract secret/mycluster-amq-broker-all-secret --keys=client.ts`
+`oc extract secret/mycluster-amq-broker-all-secret --keys=client.ts`
 
 . Extract AMQ Endpoint
 
@@ -205,7 +205,7 @@ NOTE: You cannot create more than one broker deployment in a given OpenShift pro
 . [install/upgrade] Create kind: ActiveMQArtemis and ActiveMQArtemisAddress
 . [install/upgrade] Create Config Map with custom broker xml.
 . [post-install hook] Shutdown the AMQ Broker Operator
-. [post-install hook] Adoptthe AMQ Broker resource to Helm:
+. [post-install hook] Adopt the AMQ Broker resource to Helm:
 +
 [source,yaml]
 ------

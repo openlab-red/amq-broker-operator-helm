@@ -1,5 +1,6 @@
 {{- range $index, $acceptor := .Values.acceptors }}
 {{- with $ }}
+---
 apiVersion: v1
 kind: Pod
 metadata:
@@ -9,7 +10,7 @@ metadata:
   annotations:
     "helm.sh/hook": test
     "helm.sh/hook-delete-policy": hook-succeeded
-    "helm.sh/hook-weight": "{{ $index }}"
+    "helm.sh/hook-weight": "{{ sub $index 1 }}"
 spec:
   containers:
   - name: artemis-producer
@@ -48,7 +49,7 @@ spec:
           {{ end }}
   {{- if $acceptor.sslEnabled }}
     volumeMounts:
-    - name: {{ .name }}
+    - name: {{ $acceptor.name }}
       mountPath: /opt/pki/{{ .name }} 
   volumes:
   - name: {{ $acceptor.name }}
