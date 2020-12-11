@@ -253,7 +253,10 @@ In case of failed installation due to missing role rights, AMQ Broker operator, 
 | User Management
 | DONE https://github.com/openlab-red/amq-broker-operator-helm/issues/3[#3]
 
-| Bridge and Diverts Implementation
+| Diverts Implementation
+| DONE https://github.com/openlab-red/amq-broker-operator-helm/issues/1[#1]
+
+| Bridge Implementation
 | https://github.com/openlab-red/amq-broker-operator-helm/issues/1[#1]
 
 | Network Policy
@@ -265,7 +268,7 @@ In case of failed installation due to missing role rights, AMQ Broker operator, 
 | High Availability and How scale down controller actives without the operator.
 | TODO
 
-| Migrate one standalone broker
+| E2E Test- Migrate one standalone broker
 | TODO
 |===
 
