@@ -17,6 +17,8 @@ The helm chart keeps in sync the custom resources and the custom broker.xml.
 
 ## Custom Certificate Authority
 
+The helm chart provides out of the box self signed certificate for each acceptor defined, but in case you want provide your custom certificate you need to create in advance the secret.
+
 `mkdir -p tls/{ca,broker}`
 
 ### Certificate Autority
@@ -104,8 +106,7 @@ oc label secret/mycluster-amq-broker-all-secret app.kubernetes.io/managed-by=Hel
 
 `helm upgrade --install mycluster --set pki.self=false`
 
-
-## Test External Client
+## Test External Client Communication
 
 . Extract Client TrustStore
 +
