@@ -176,10 +176,10 @@ Consumer ActiveMQQueue[TEST], thread=0 Consumer thread finished
 | DONE
 
 | SSL Custom CA Implementation
-| https://github.com/openlab-red/amq-broker-operator-helm/issues/2[#2]
+| DONE https://github.com/openlab-red/amq-broker-operator-helm/issues/2[#2]
 
 | User Management
-| https://github.com/openlab-red/amq-broker-operator-helm/issues/3[#3]
+| DONE https://github.com/openlab-red/amq-broker-operator-helm/issues/3[#3]
 
 | Bridge and Diverts Implementation
 | https://github.com/openlab-red/amq-broker-operator-helm/issues/1[#1]
