@@ -100,6 +100,21 @@ data:
                     <permission type="send" roles="admin" />
                     <permission type="manage" roles="admin" />
                 </security-setting>
+
+                {{- range .Values.securitySettings.securitySetting }}
+                <security-setting match="{{ .match }}">
+                    <permission type="createNonDurableQueue" roles="{{ .createNonDurableQueue }}" />
+                    <permission type="deleteNonDurableQueue" roles="{{ .deleteNonDurableQueue }}" />
+                    <permission type="createDurableQueue" roles="{{ .createDurableQueue }}" />
+                    <permission type="deleteDurableQueue" roles="{{ .deleteDurableQueue }}" />
+                    <permission type="createAddress" roles="{{ .createAddress }}" />
+                    <permission type="deleteAddress" roles="{{ .deleteAddress }}" />
+                    <permission type="consume" roles="{{ .consume }}" />
+                    <permission type="browse" roles="{{ .browse }}" />
+                    <permission type="send" roles="{{ .send }}in" />
+                    <permission type="manage" roles="{{ .manage }}" />
+                </security-setting>
+                {{- end }}
             </security-settings>
 
             <address-settings>
@@ -170,6 +185,21 @@ data:
 
             </addresses>
 
+            <diverts>
+                {{- range .Values.diverts }}
+                    <divert name="{{ .name }}">
+                        <address>{{ .address }}</address>
+                        <forwarding-address>{{ .forwardingAddress }}</forwarding-address>
+                        <exclusive>{{ .exclusive }}</exclusive>
+                    </divert>
+                {{- end }}
+            </diverts>
+
+            <bridges>
+                {{- range .Values.bridges }}
+                
+                {{- end}}
+            </bridges>
         </core>
 
     </configuration>

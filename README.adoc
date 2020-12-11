@@ -120,6 +120,7 @@ oc label secret/mycluster-amq-broker-all-secret app.kubernetes.io/managed-by=Hel
 [source,bash]
 -------
 ./artemis producer --user amq --password amq --message-count 10 --url="tcp://${AMQ_ENDPOINT}:443?sslEnabled=true;trustStorePath=./client.ts;trustStorePassword=password"
+
 Connection brokerURL = tcp://mycluster-amq-broker-all-0-svc-rte-dxc.apps-crc.testing:443?sslEnabled=true;trustStorePath=./client.ts;trustStorePassword=password
 Producer ActiveMQQueue[TEST], thread=0 Started to calculate elapsed time ...
 
@@ -133,6 +134,7 @@ Producer ActiveMQQueue[TEST], thread=0 Elapsed time in milli second : 79 milli s
 [source,bash]
 -------
 ./artemis consumer --user amq --password amq --message-count 10 --url="tcp://${AMQ_ENDPOINT}:443?sslEnabled=true;trustStorePath=./client.ts;trustStorePassword=password"
+
 Connection brokerURL = tcp://mycluster-amq-broker-all-0-svc-rte-dxc.apps-crc.testing:443?sslEnabled=true;trustStorePath=./client.ts;trustStorePassword=password
 Consumer:: filter = null
 Consumer ActiveMQQueue[TEST], thread=0 wait until 10 messages are consumed
@@ -173,7 +175,7 @@ Consumer ActiveMQQueue[TEST], thread=0 Consumer thread finished
 | Keystore and Truststore Password
 | DONE
 
-| SSL Custom CA Implementation, NOTE: if you create the certificate early it should work
+| SSL Custom CA Implementation
 | https://github.com/openlab-red/amq-broker-operator-helm/issues/2[#2]
 
 | User Management

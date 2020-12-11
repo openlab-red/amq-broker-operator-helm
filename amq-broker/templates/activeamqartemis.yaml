@@ -7,6 +7,8 @@ metadata:
 spec:
   acceptors:
     {{- toYaml .Values.acceptors | nindent 4 }}
+  connectors:
+    {{- toYaml .Values.connectors | nindent 4 }}
   addressSettings:
     {{- toYaml .Values.addressSettings | nindent 4 }}
   adminPassword: {{ .Values.adminPassword }}

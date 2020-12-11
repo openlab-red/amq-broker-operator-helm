@@ -66,6 +66,8 @@ acceptors:
   protocols: amqp
   port: 5672
 
+connectors: []
+
 addressSettings:
   addressSetting:
   - addressFullPolicy: PAGE
@@ -81,6 +83,24 @@ addresses:
 - addressName: com.my.queue
   queueName: com.my.queue
   routingType: anycast
+
+securitySettings:
+ users:
+ - name: test
+   password: test
+   role: guest
+ securitySetting:
+ - match: 'ch.rtc.igt.#'
+   createNonDurableQueue: admin
+   deleteNonDurableQueue: admin
+   createDurableQueue: admin
+   deleteDurableQueue: admin
+   createAddress: admin
+   deleteAddress: admin
+   consume: admin
+   browse: admin
+   send: admin
+   manage: admin
 
 bridges: []
 

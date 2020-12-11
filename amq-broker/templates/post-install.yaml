@@ -103,6 +103,11 @@ spec:
             # Wait the rollout of AMQ Broker Statefulset
             oc rollout status sts/$AMQ_BROKER -w
             
+            # Security
+            {{- range  .Values.securitySettings.users }}
+            oc exec sts/$AMQ_BROKER -- /home/jboss/amq-broker/bin/artemis user add --user {{ .name }} --password {{ .password }} --role {{ .role }}
+            {{- end }}
+
             # Scale Down the Operator
             oc scale --replicas=0 deployments/amq-broker-operator
 
