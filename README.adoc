@@ -112,7 +112,7 @@ oc label secret/mycluster-amq-broker-all-secret app.kubernetes.io/managed-by=Hel
 `oc extract secret/mycluster-amq-broker-all-secret --keys=client.ts`
 
 . Extract AMQ Endpoint
-
++
 `export AMQ_ENDPOINT=$(oc get route mycluster-amq-broker-all-0-svc-rte --no-headers -o custom-columns=:.spec.host)`
 
 . Launch Artemis Producer Command
@@ -127,12 +127,13 @@ Producer ActiveMQQueue[TEST], thread=0 Started to calculate elapsed time ...
 Producer ActiveMQQueue[TEST], thread=0 Produced: 10 messages
 Producer ActiveMQQueue[TEST], thread=0 Elapsed time in second : 0 s
 Producer ActiveMQQueue[TEST], thread=0 Elapsed time in milli second : 79 milli seconds
+
 -------
 
 . Launch Artemis Consumer Command
 +
 [source,bash]
--------
+-----
 ./artemis consumer --user amq --password amq --message-count 10 --url="tcp://${AMQ_ENDPOINT}:443?sslEnabled=true;trustStorePath=./client.ts;trustStorePassword=password"
 
 Connection brokerURL = tcp://mycluster-amq-broker-all-0-svc-rte-dxc.apps-crc.testing:443?sslEnabled=true;trustStorePath=./client.ts;trustStorePassword=password
@@ -143,11 +144,82 @@ Consumer ActiveMQQueue[TEST], thread=0 Elapsed time in second : 0 s
 Consumer ActiveMQQueue[TEST], thread=0 Elapsed time in milli second : 17 milli seconds
 Consumer ActiveMQQueue[TEST], thread=0 Consumed: 10 messages
 Consumer ActiveMQQueue[TEST], thread=0 Consumer thread finished
--------
+-----
+
+## Bridge Scenario [WIP]
+
+. Create two OpenShift project.
++
+[source,bash]
+-----
+oc new-project brk1
+oc new-project brk2
+-----
+
+. Install AMQ Broker Operator for both the projects.
+
+. Create a NetworkPolicy to allow connection from brk1 to brk2.
++
+[source,yaml]
+-----
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mycluster1-amq-broker-all
+  labels:
+    app.kubernetes.io/name: amq-broker
+    app.kubernetes.io/instance: mycluster2
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: amq-broker
+      app.kubernetes.io/instance: mycluster2
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              app.kubernetes.io/instance: mycluster
+      ports:
+      - port: 61617
+        protocol: TCP
+-----
+
+. Label brk1 namespace with `app.kubernetes.io/instance: mycluster`
++
+`oc label namespace brk1 app.kubernetes.io/instance=mycluster`
+
+. Install AMQ Broker Helm Chart on brk2
++
+`helm upgrade --install mycluster2 amq-broker -n brk2`
+
+. In case of SSL Connector to brk2, create a secret on brk1 to able to connect to brk2.
++
+[source,bash]
+-----
+mkdir brk2-pki
+
+oc extract secret/mycluster2-amq-broker-all-secret --to=brk2-pki -n brk2
+
+oc create secret generic mycluster2-amq-broker-all-brk2-secret --from-file=brk2-pki/ -n brk1
+-----
+
+. Install AMQ Broker Helm Chart on brk1
++
+`helm upgrade --install mycluster amq-broker -n brk1`
+
+. Launch Helm Test to test the bridge connection
++
+`helm test mycluster1 -n brk1`
 
 ## Uninstall it
 
 `helm uninstall mycluster --no-hooks`
+
+## Failed Status
+
+In case of failed installation due to missing role rights, AMQ Broker operator, tests failed or others, please make sure to clean up all the pending resources.
+
+`oc delete all -lapp.kubernetes.io/name=amq-broker`
 
 ## Progress
 

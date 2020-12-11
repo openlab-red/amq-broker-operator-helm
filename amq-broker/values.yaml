@@ -66,7 +66,15 @@ acceptors:
   protocols: amqp
   port: 5672
 
-connectors: []
+connectors:
+- port: 61617
+  host: mycluster2-amq-broker-all-0-svc.brk2.svc.cluster.local
+  needClientAuth: false
+  name: bridge
+  type: tcp
+# Requires secret created in Advanced.
+  sslEnabled: true
+  sslSecret: mycluster2-amq-broker-all-brk2-secret
 
 addressSettings:
   addressSetting:
@@ -83,6 +91,13 @@ addresses:
 - addressName: com.my.queue
   queueName: com.my.queue
   routingType: anycast
+- addressName: divert.test.address
+  queueName: divert.test.address
+  routingType: anycast
+- addressName: divert.test.forwarding
+  queueName: divert.test.forwarding
+  routingType: anycast
+
 
 securitySettings:
  users:
@@ -90,7 +105,7 @@ securitySettings:
    password: test
    role: guest
  securitySetting:
- - match: 'ch.rtc.igt.#'
+ - match: 'com.my.queue.#'
    createNonDurableQueue: admin
    deleteNonDurableQueue: admin
    createDurableQueue: admin
@@ -104,7 +119,11 @@ securitySettings:
 
 bridges: []
 
-diverts: []
+diverts:
+- name: divert.test
+  address: divert.test.address
+  forwardingAddress: divert.test.forwarding
+  exclusive: true
 
 clusterDomain: apps.dev.openlab.red
 

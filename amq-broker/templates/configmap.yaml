@@ -46,6 +46,8 @@ data:
             <connectors>
                 <!-- Connector used to be announced through cluster connections and notifications -->
                 <connector name="artemis">tcp://${BROKER_IP}:61616</connector>
+
+                {{- include "amq-broker.connectors" . | nindent 16 }}
             </connectors>
 
             <acceptors>
@@ -188,16 +190,28 @@ data:
             <diverts>
                 {{- range .Values.diverts }}
                     <divert name="{{ .name }}">
+                        <routing-name>{{ .name }}</routing-name>
                         <address>{{ .address }}</address>
                         <forwarding-address>{{ .forwardingAddress }}</forwarding-address>
                         <exclusive>{{ .exclusive }}</exclusive>
+                        {{- if .filter }}
+                        <filter>{{ .filter }}</filter>
+                        {{- end }}
                     </divert>
                 {{- end }}
             </diverts>
 
             <bridges>
                 {{- range .Values.bridges }}
-                
+                <bridge name="{{ .name }}">
+                    <queue-name>{{ .queueName }}</queue-name>
+                    <forwarding-address>{{ .forwardingAddress }}</forwarding-address>
+                    <user>{{ .user }}</user>
+                    <password>{{ .password }}</password>
+                    <static-connectors>
+                        <connector-ref>{{ .connectorRef }}</connector-ref>
+                    </static-connectors>
+                </bridge>
                 {{- end}}
             </bridges>
         </core>

@@ -105,4 +105,24 @@ tcpSendBufferSize=1048576;tcpReceiveBufferSize=1048576;useEpoll=true;amqpCredits
 {{- end }}
 {{- end }}
 
+{{/*
+Generate connectors broker.xml
+TODO: Read the connector ssl secret automatically
+*/}}
+{{- define "amq-broker.connectors" -}}
+{{- $fullName := ( include "amq-broker.fullname" . ) -}}
+{{ range .Values.connectors }}
+{{- $connector := . -}}
+{{- with $ }}
+<connector name="{{ $connector.name }}">{{ $connector.type }}://{{ $connector.host }}:{{ $connector.port }}
+{{- if $connector.sslEnabled -}}
+;sslEnabled=true;keyStorePath=/etc/{{ $connector.sslSecret }}-volume/broker.ks;keyStorePassword={{ .Values.pki.keyStorePassword }};trustStorePath=/etc/{{ $connector.sslSecret }}-volume/client.ts;trustStorePassword={{ .Values.pki.trustStorePassword }}
+{{- else -}}
+;
+{{- end -}}
+</connector>
+{{- end -}}
+{{- end }}
+{{- end }}
+
 
