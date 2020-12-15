@@ -116,7 +116,8 @@ TODO: Read the connector ssl secret automatically
 {{- with $ }}
 <connector name="{{ $connector.name }}">{{ $connector.type }}://{{ $connector.host }}:{{ $connector.port }}
 {{- if $connector.sslEnabled -}}
-;sslEnabled=true;keyStorePath=/etc/{{ $connector.sslSecret }}-volume/broker.ks;keyStorePassword={{ .Values.pki.keyStorePassword }};trustStorePath=/etc/{{ $connector.sslSecret }}-volume/client.ts;trustStorePassword={{ .Values.pki.trustStorePassword }}
+{{- $secret := (lookup "v1" "Secret" .Release.Namespace $connector.sslSecret) -}}
+;sslEnabled=true;keyStorePath=/etc/{{ $connector.sslSecret }}-volume/broker.ks;keyStorePassword={{ get $secret.data "keyStorePassword" }};trustStorePath=/etc/{{ $connector.sslSecret }}-volume/client.ts;trustStorePassword={{ get $secret.data "trustStorePassword" }}
 {{- else -}}
 ;
 {{- end -}}

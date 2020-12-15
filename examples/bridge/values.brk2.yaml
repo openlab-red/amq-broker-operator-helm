@@ -67,14 +67,6 @@ acceptors:
   port: 5672
 
 connectors: []
-# - port: 61617
-#   host: mycluster2-amq-broker-all-0-svc.brk2.svc.cluster.local
-#   needClientAuth: false
-#   name: bridge
-#   type: tcp
-# # Requires secret created in Advanced.
-#   sslEnabled: true
-#   sslSecret: mycluster2-amq-broker-all-brk2-secret
 
 addressSettings:
   addressSetting:
@@ -97,6 +89,9 @@ addresses:
 - addressName: divert.test.forwarding
   queueName: divert.test.forwarding
   routingType: anycast
+- addressName: bridge.test.forwarding
+  queueName: bridge.test.forwarding
+  routingType: anycast
 
 
 securitySettings:
@@ -118,12 +113,6 @@ securitySettings:
    manage: admin
 
 bridges: []
-# - name: bridge.test
-#   queueName: bridge.test.address
-#   forwardingAddress: bridge.test.forwarding
-#   user: amq
-#   password: amq
-#   connectorRef: bridge
 
 diverts:
 - name: divert.test

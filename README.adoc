@@ -147,7 +147,7 @@ Consumer ActiveMQQueue[TEST], thread=0 Consumed: 10 messages
 Consumer ActiveMQQueue[TEST], thread=0 Consumer thread finished
 -----
 
-## Bridge Scenario [WIP]
+## Bridge Scenario
 
 . Create two OpenShift project.
 +
@@ -191,26 +191,47 @@ spec:
 
 . Install AMQ Broker Helm Chart on brk2
 +
-`helm upgrade --install mycluster2 amq-broker -n brk2`
+`helm upgrade --install mycluster2 amq-broker -n brk2 -f examples/bridge/values.brk2.yaml`
+
+. Test the installation on brk2
++
+`helm test mycluster2 -n brk2`
 
 . In case of SSL Connector to brk2, create a secret on brk1 to able to connect to brk2.
 +
 [source,bash]
 -----
-mkdir brk2-pki
+mkdir -p examples/bridge/brk2-certs
 
-oc extract secret/mycluster2-amq-broker-all-secret --to=brk2-pki -n brk2
+oc extract secret/mycluster2-amq-broker-all-secret --to=examples/bridge/brk2-certs -n brk2
 
-oc create secret generic mycluster2-amq-broker-all-brk2-secret --from-file=brk2-pki/ -n brk1
+oc create secret generic mycluster2-amq-broker-all-brk2-secret --from-file=examples/bridge/brk2-certs/ -n brk1
 -----
 
 . Install AMQ Broker Helm Chart on brk1
 +
-`helm upgrade --install mycluster amq-broker -n brk1`
+`helm upgrade --install mycluster amq-broker -n brk1 -f examples/bridge/values.brk1.yaml`
 
-. Launch Helm Test to test the bridge connection
+. Test the installation on brk1
 +
-`helm test mycluster1 -n brk1`
+`helm test mycluster -n brk1`
+
+### Test the bridge connection
+
+NOTE: Check <<Test External Client Communication>> to launch producer and consumer command.
+
+. Produce message on brk1
+[source,bash]
+-----
+./artemis producer --user amq --password amq --message-count 10 --url="tcp://${AMQ_ENDPOINT}:443?sslEnabled=true;trustStorePath=./client.ts;trustStorePassword=password" --destination=bridge.test.address
+-----
+
+. Consume message on brk2
+
+[source,bash]
+-----
+./artemis consumer --user amq --password amq --message-count 10 --url="tcp://${AMQ_ENDPOINT}:443?sslEnabled=true;trustStorePath=./client.ts;trustStorePassword=password" --destination=bridge.test.forwarding
+-----
 
 ## Uninstall it
 
